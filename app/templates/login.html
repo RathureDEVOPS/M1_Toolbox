@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="auth-shell">
+  <section class="auth-card panel">
+    <div class="auth-card__head">
+      <span class="app-topbar__eyebrow">Acces protege</span>
+      <h1>{{ app_name }}</h1>
+      <p>Connecte-toi avec l'identifiant admin et le mot de passe local. Si l'A2F n'est pas encore activee pour ce compte, la configuration te sera proposee juste apres.</p>
+    </div>
+
+    {% if not auth_configured %}
+    <div class="auth-alert auth-alert-danger">
+      L'A2F est activee mais la configuration est incomplete. Verifie les variables <code>TOOLBOX_AUTH_*</code> et <code>AUTH_SESSION_SECRET</code>.
+    </div>
+    {% endif %}
+
+    {% if error_message %}
+    <div class="auth-alert auth-alert-danger">
+      {{ error_message }}
+    </div>
+    {% endif %}
+
+    <form class="auth-form" method="post" action="/login">
+      <label class="config-field">
+        <span>Identifiant</span>
+        <input name="username" type="text" autocomplete="username" value="{{ auth_username }}" required>
+      </label>
+      <label class="config-field">
+        <span>Mot de passe</span>
+        <input name="password" type="password" autocomplete="current-password" placeholder="mot de passe" required>
+      </label>
+
+      <div class="auth-form__actions">
+        <button type="submit">Se connecter</button>
+      </div>
+    </form>
+
+    <p class="hint">Application TOTP recommandee : Google Authenticator, Microsoft Authenticator ou Aegis. Emission : <code>{{ auth_totp_issuer }}</code>.</p>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}{% endblock %}

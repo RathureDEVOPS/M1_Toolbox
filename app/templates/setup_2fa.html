@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="auth-shell">
+  <section class="auth-card panel">
+    <div class="auth-card__head">
+      <span class="app-topbar__eyebrow">Activation A2F</span>
+      <h1>{{ app_name }}</h1>
+      <p>Ajoute ce compte dans ton application TOTP, puis saisis un code a 6 chiffres pour confirmer l'activation avant d'acceder a Reconforge.</p>
+    </div>
+
+    {% if error_message %}
+    <div class="auth-alert auth-alert-danger">
+      {{ error_message }}
+    </div>
+    {% endif %}
+
+    <div class="auth-qr-block">
+      <img src="{{ qr_code_data_uri }}" alt="QR code A2F" class="auth-qr-image">
+    </div>
+
+    <div class="auth-setup-grid">
+      <div class="auth-setup-card">
+        <strong>Compte</strong>
+        <p><code>{{ auth_username }}</code></p>
+      </div>
+      <div class="auth-setup-card">
+        <strong>Emetteur</strong>
+        <p><code>{{ auth_totp_issuer }}</code></p>
+      </div>
+      <div class="auth-setup-card auth-setup-card--wide">
+        <strong>Secret TOTP</strong>
+        <p><code>{{ totp_secret }}</code></p>
+      </div>
+      <div class="auth-setup-card auth-setup-card--wide">
+        <strong>URI d'enrolement</strong>
+        <p><code>{{ provisioning_uri }}</code></p>
+      </div>
+    </div>
+
+    <form class="auth-form" method="post" action="/setup-2fa">
+      <label class="config-field">
+        <span>Code A2F</span>
+        <input name="otp_code" type="text" inputmode="numeric" pattern="[0-9 ]{6,8}" autocomplete="one-time-code" placeholder="123456" required>
+      </label>
+
+      <div class="auth-form__actions">
+        <button type="submit">Activer l'A2F et ouvrir Reconforge</button>
+      </div>
+    </form>
+
+    <p class="hint">Si ton application ne scanne pas d'URI, ajoute manuellement un compte TOTP avec le secret ci-dessus, 6 chiffres, periode 30 secondes.</p>
+  </section>
+</div>
+{% endblock %}

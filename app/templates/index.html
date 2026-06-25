@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block body %}
+<header class="app-topbar">
+  <div class="app-topbar__brand">
+    <span class="app-topbar__eyebrow">Localhost Security Workbench</span>
+    <strong>{{ app_name }}</strong>
+  </div>
+  <div class="app-topbar__actions">
+    {% if auth_enabled %}
+    <a class="theme-toggle" href="/logout">Se deconnecter</a>
+    {% endif %}
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+      <span id="theme-toggle-label">Mode sombre</span>
+    </button>
+  </div>
+</header>
+<div class="workspace">
+  <main class="main-column">
+    <section class="panel panel-compact">
+      <form id="scan-form" class="scan-form">
+        <div class="target-row">
+          <input
+            id="target"
+            name="target"
+            type="text"
+            placeholder="IP, domaine ou URL"
+            autocomplete="off"
+            required
+          >
+          <button id="submit-button" type="submit">Lancer</button>
+        </div>
+
+        <p class="hint">
+          Depuis Docker, <code>127.0.0.1</code> vise le conteneur. Pour viser l'hote, utilisez
+          <code>host.docker.internal</code>.
+        </p>
+        {% if juice_shop_target %}
+        <p class="hint hint-inline">
+          Cible lab Kali :
+          <code>{{ juice_shop_target }}</code>
+          <button
+            id="use-juice-shop-target"
+            class="inline-button"
+            type="button"
+            data-target="{{ juice_shop_target }}"
+          >
+            Utiliser Juice Shop
+          </button>
+        </p>
+        {% endif %}
+
+        <div class="workbench">
+          <div class="tools-block">
+            <p class="tools-label">Outils disponibles par pole</p>
+            <div class="pole-groups">
+            {% for group in module_groups %}
+              <section class="pole-group">
+                <div class="pole-group-head">
+                  <strong>{{ group.label }}</strong>
+                  <span>{{ group.needs }}</span>
+                </div>
+                {% if group.modules %}
+                <div class="scripts-strip">
+                  {% for module in group.modules %}
+                  <label class="script-chip">
+                    <input type="checkbox" name="modules" value="{{ module.identifier }}">
+                    <span>{{ module.name }}</span>
+                  </label>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <p class="pole-empty">Aucun outil actif pour le moment.</p>
+                {% endif %}
+
+                {% if group.identifier == "infrastructure" %}
+                <section id="hydra-config" class="module-config" hidden>
+                  <div class="module-config-head">
+                    <strong>Hydra</strong>
+                    <span>SSH uniquement</span>
+                  </div>
+                  <div class="config-grid">
+                    <label class="config-field">
+                      <span>Identifiant</span>
+                      <input id="hydra-username" name="hydra_username" type="text" autocomplete="off" placeholder="utilisateur SSH">
+                    </label>
+                    <label class="config-field">
+                      <span>Source utilisateurs</span>
+                      <select id="hydra-username-source" name="hydra_username_source">
+                        <option value="shortlist" data-path="{{ hydra_username_list_short }}" selected>top-usernames-shortlist.txt</option>
+                        <option value="names" data-path="{{ hydra_username_list_common }}">names.txt</option>
+                        <option value="manual">Saisie manuelle</option>
+                      </select>
+                    </label>
+                    <label class="config-field">
+                      <span>Mot de passe</span>
+                      <input id="hydra-password" name="hydra_password" type="password" autocomplete="off" placeholder="mot de passe SSH">
+                    </label>
+                    <label class="config-field">
+                      <span>Source mots de passe</span>
+                      <select id="hydra-password-source" name="hydra_password_source">
+                        <option value="small" data-path="{{ hydra_password_list_small }}" selected>500-worst-passwords.txt</option>
+                        <option value="manual">Saisie manuelle</option>
+                        <option value="common" data-path="{{ hydra_password_list_common }}">10k-most-common.txt</option>
+                        <option value="rockyou" data-path="{{ hydra_password_list_rockyou }}">rockyou.txt</option>
+                      </select>
+                    </label>
+                    <label class="config-field config-field-small">
+                      <span>Port SSH</span>
+                      <input id="hydra-port" name="hydra_port" type="number" min="1" max="65535" value="22">
+                    </label>
+                  </div>
+                  <p id="hydra-username-list-hint" class="hint"></p>
+                  <p id="hydra-password-list-hint" class="hint" hidden></p>
+                  <p class="hint">Hydra est utilise ici uniquement pour des tests SSH avec saisie manuelle ou wordlists Kali.</p>
+                </section>
+                {% endif %}
+
+                {% if group.identifier == "security" %}
+                <section id="wireshark-config" class="module-config" hidden>
+                  <div class="module-config-head">
+                    <strong>Wireshark</strong>
+                    <span>Capture courte via tshark</span>
+                  </div>
+                  <div class="config-grid">
+                    <label class="config-field">
+                      <span>Interface</span>
+                      <input id="wireshark-interface" name="wireshark_interface" type="text" value="{{ wireshark_default_interface }}" autocomplete="off" placeholder="eth0">
+                    </label>
+                    <label class="config-field">
+                      <span>Duree</span>
+                      <input id="wireshark-duration" name="wireshark_duration" type="number" min="1" max="300" value="10" autocomplete="off" placeholder="10">
+                    </label>
+                  </div>
+                  <p class="hint">La cible principale est utilisee comme filtre reseau <code>host</code>. La duree se saisit en secondes et le rapport JSON/PDF contiendra un resume des trames capturees.</p>
+                </section>
+                {% endif %}
+
+                {% if group.identifier == "rh-admin" %}
+                <section id="auth-audit-config" class="module-config" hidden>
+                  <div class="module-config-head">
+                    <strong>Auth Audit</strong>
+                    <span>Audit controle du login</span>
+                  </div>
+                  <div class="config-grid">
+                    <label class="config-field">
+                      <span>Endpoint de connexion</span>
+                      <input id="auth-audit-endpoint-path" name="auth_audit_endpoint_path" type="text" value="{{ auth_audit_default_endpoint }}" autocomplete="off" placeholder="/rest/user/login">
+                    </label>
+                    <label class="config-field">
+                      <span>Format de requete</span>
+                      <select id="auth-audit-request-format" name="auth_audit_request_format">
+                        <option value="json" {% if auth_audit_default_request_format == "json" %}selected{% endif %}>JSON API</option>
+                        <option value="form" {% if auth_audit_default_request_format == "form" %}selected{% endif %}>Formulaire classique</option>
+                      </select>
+                    </label>
+                    <label class="config-field">
+                      <span>Champ identifiant</span>
+                      <input id="auth-audit-username-field" name="auth_audit_username_field" type="text" value="email" autocomplete="off" placeholder="email">
+                    </label>
+                    <label class="config-field">
+                      <span>Champ mot de passe</span>
+                      <input id="auth-audit-password-field" name="auth_audit_password_field" type="text" value="password" autocomplete="off" placeholder="password">
+                    </label>
+                    <label class="config-field">
+                      <span>Marqueur d'echec</span>
+                      <input id="auth-audit-failure-marker" name="auth_audit_failure_marker" type="text" value="{{ auth_audit_default_failure_marker }}" autocomplete="off" placeholder="Invalid email or password.">
+                    </label>
+                    <label class="config-field config-field-small">
+                      <span>Tentatives</span>
+                      <input id="auth-audit-attempts" name="auth_audit_attempts" type="number" min="1" max="5" value="{{ auth_audit_default_attempts }}" autocomplete="off">
+                    </label>
+                  </div>
+                  <p class="hint">Saisis l'URL de la page de login dans le champ principal, puis l'endpoint d'authentification ici. Le module envoie seulement quelques tentatives invalides controlees pour observer les reponses, les cookies et les protections.</p>
+                </section>
+                {% endif %}
+              </section>
+            {% endfor %}
+            </div>
+            <p class="hint"><code>nmap</code>, <code>Hydra</code>, <code>Wireshark</code>, <code>WhatWeb</code>, <code>theHarvester</code>, <code>Gobuster</code>, <code>SSLyze</code>, <code>Nikto</code>, <code>SQLmap</code> et <code>Auth Audit</code> s'executent l'un apres l'autre dans une seule session de rapport. Pour les outils web, utilisez de preference une URL complete dans le champ principal. <code>theHarvester</code> exploitera automatiquement le nom de domaine de l'URL saisie.</p>
+          </div>
+
+          <section class="panel panel-terminal panel-terminal-inline">
+            <div class="terminal-head">
+              <div class="terminal-meta">
+                <strong id="status-text">Pret.</strong>
+                <span id="duration-text">-</span>
+              </div>
+              <span id="status-pill" class="status-dot status-idle">idle</span>
+            </div>
+
+            <pre id="terminal-output" class="terminal-output">$ en attente de commande...</pre>
+          </section>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <aside class="side-column">
+    <section class="panel panel-history">
+      <div class="history-head">
+        <h2>Historique</h2>
+        <button id="refresh-history" type="button" class="ghost-button">Rafraichir</button>
+      </div>
+
+      <div class="history-controls">
+        <input id="history-search" type="search" placeholder="Rechercher une cible, un outil, une commande..." autocomplete="off">
+      </div>
+
+      <div id="history-list" class="history-list">
+        <p class="history-empty">Aucune commande executee pour le moment.</p>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %}
