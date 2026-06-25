@@ -1,0 +1,203 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pentest-toolbox-web
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      TOOLBOX_AUTH_ENABLED: ${TOOLBOX_AUTH_ENABLED:-false}
+      TOOLBOX_AUTH_USERNAME: ${TOOLBOX_AUTH_USERNAME:-admin}
+      TOOLBOX_AUTH_PASSWORD: ${TOOLBOX_AUTH_PASSWORD:-}
+      TOOLBOX_AUTH_TOTP_SECRET: ${TOOLBOX_AUTH_TOTP_SECRET:-}
+      TOOLBOX_AUTH_TOTP_ISSUER: ${TOOLBOX_AUTH_TOTP_ISSUER:-Reconforge}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-}
+      EXECUTION_MODE: ${EXECUTION_MODE:-local}
+      KALI_SSH_HOST: ${KALI_SSH_HOST:-}
+      KALI_SSH_PORT: ${KALI_SSH_PORT:-22}
+      KALI_SSH_USERNAME: ${KALI_SSH_USERNAME:-kali}
+      KALI_SSH_PASSWORD: ${KALI_SSH_PASSWORD:-}
+      KALI_SSH_KEY_PATH: ${KALI_SSH_KEY_PATH:-}
+      KALI_SSH_ALLOW_UNKNOWN_HOST: ${KALI_SSH_ALLOW_UNKNOWN_HOST:-true}
+      NIKTO_BINARY: ${NIKTO_BINARY:-/opt/nikto/program/nikto.pl}
+      NIKTO_TIMEOUT: ${NIKTO_TIMEOUT:-300}
+      SQLMAP_BINARY: ${SQLMAP_BINARY:-/opt/sqlmap/sqlmap.py}
+      SQLMAP_TIMEOUT: ${SQLMAP_TIMEOUT:-300}
+      SSLYZE_BINARY: ${SSLYZE_BINARY:-sslyze}
+      WHATWEB_BINARY: ${WHATWEB_BINARY:-whatweb}
+      THEHARVESTER_BINARY: ${THEHARVESTER_BINARY:-theHarvester}
+      GOBUSTER_BINARY: ${GOBUSTER_BINARY:-gobuster}
+      POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://toolbox:toolbox@postgres:5432/toolbox}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SSLYZE_TIMEOUT: ${SSLYZE_TIMEOUT:-180}
+      WHATWEB_TIMEOUT: ${WHATWEB_TIMEOUT:-180}
+      THEHARVESTER_TIMEOUT: ${THEHARVESTER_TIMEOUT:-180}
+      THEHARVESTER_SOURCES: ${THEHARVESTER_SOURCES:-crtsh,rapiddns,urlscan}
+      THEHARVESTER_LIMIT: ${THEHARVESTER_LIMIT:-200}
+      GOBUSTER_TIMEOUT: ${GOBUSTER_TIMEOUT:-240}
+      GOBUSTER_WORDLIST: ${GOBUSTER_WORDLIST:-/usr/share/wordlists/dirb/common.txt}
+      GOBUSTER_THREADS: ${GOBUSTER_THREADS:-4}
+      GOBUSTER_EXTENSIONS: ${GOBUSTER_EXTENSIONS:-}
+      GOBUSTER_DELAY: ${GOBUSTER_DELAY:-150ms}
+      GOBUSTER_REQUEST_TIMEOUT: ${GOBUSTER_REQUEST_TIMEOUT:-5s}
+      HYDRA_BINARY: ${HYDRA_BINARY:-hydra}
+      HYDRA_TIMEOUT: ${HYDRA_TIMEOUT:-120}
+      HYDRA_THREADS: ${HYDRA_THREADS:-4}
+      HYDRA_USERNAME_LIST_SHORT: ${HYDRA_USERNAME_LIST_SHORT:-/usr/share/seclists/Usernames/top-usernames-shortlist.txt}
+      HYDRA_USERNAME_LIST_COMMON: ${HYDRA_USERNAME_LIST_COMMON:-/usr/share/seclists/Usernames/Names/names.txt}
+      HYDRA_PASSWORD_LIST_SMALL: ${HYDRA_PASSWORD_LIST_SMALL:-/usr/share/seclists/Passwords/Common-Credentials/500-worst-passwords.txt}
+      HYDRA_PASSWORD_LIST_COMMON: ${HYDRA_PASSWORD_LIST_COMMON:-/usr/share/seclists/Passwords/Common-Credentials/10k-most-common.txt}
+      HYDRA_PASSWORD_LIST_ROCKYOU: ${HYDRA_PASSWORD_LIST_ROCKYOU:-/usr/share/wordlists/rockyou.txt}
+      AUTH_AUDIT_TIMEOUT: ${AUTH_AUDIT_TIMEOUT:-45}
+      AUTH_AUDIT_DEFAULT_ENDPOINT: ${AUTH_AUDIT_DEFAULT_ENDPOINT:-/rest/user/login}
+      AUTH_AUDIT_DEFAULT_REQUEST_FORMAT: ${AUTH_AUDIT_DEFAULT_REQUEST_FORMAT:-json}
+      AUTH_AUDIT_DEFAULT_FAILURE_MARKER: ${AUTH_AUDIT_DEFAULT_FAILURE_MARKER:-Invalid email or password.}
+      AUTH_AUDIT_DEFAULT_ATTEMPTS: ${AUTH_AUDIT_DEFAULT_ATTEMPTS:-3}
+      WIRESHARK_BINARY: ${WIRESHARK_BINARY:-tshark}
+      WIRESHARK_TIMEOUT: ${WIRESHARK_TIMEOUT:-30}
+      WIRESHARK_DEFAULT_INTERFACE: ${WIRESHARK_DEFAULT_INTERFACE:-eth0}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+      FERNET_KEY: ${FERNET_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+    volumes:
+      - ./storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pentest-toolbox-worker
+    command: ["poetry", "run", "celery", "-A", "app.tasks.celery_app.celery_app", "worker", "--loglevel=INFO"]
+    profiles: ["worker"]
+    environment:
+      TOOLBOX_AUTH_ENABLED: ${TOOLBOX_AUTH_ENABLED:-false}
+      TOOLBOX_AUTH_USERNAME: ${TOOLBOX_AUTH_USERNAME:-admin}
+      TOOLBOX_AUTH_PASSWORD: ${TOOLBOX_AUTH_PASSWORD:-}
+      TOOLBOX_AUTH_TOTP_SECRET: ${TOOLBOX_AUTH_TOTP_SECRET:-}
+      TOOLBOX_AUTH_TOTP_ISSUER: ${TOOLBOX_AUTH_TOTP_ISSUER:-Reconforge}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:-}
+      EXECUTION_MODE: ${EXECUTION_MODE:-local}
+      KALI_SSH_HOST: ${KALI_SSH_HOST:-}
+      KALI_SSH_PORT: ${KALI_SSH_PORT:-22}
+      KALI_SSH_USERNAME: ${KALI_SSH_USERNAME:-kali}
+      KALI_SSH_PASSWORD: ${KALI_SSH_PASSWORD:-}
+      KALI_SSH_KEY_PATH: ${KALI_SSH_KEY_PATH:-}
+      KALI_SSH_ALLOW_UNKNOWN_HOST: ${KALI_SSH_ALLOW_UNKNOWN_HOST:-true}
+      NIKTO_BINARY: ${NIKTO_BINARY:-/opt/nikto/program/nikto.pl}
+      NIKTO_TIMEOUT: ${NIKTO_TIMEOUT:-300}
+      SQLMAP_BINARY: ${SQLMAP_BINARY:-/opt/sqlmap/sqlmap.py}
+      SQLMAP_TIMEOUT: ${SQLMAP_TIMEOUT:-300}
+      SSLYZE_BINARY: ${SSLYZE_BINARY:-sslyze}
+      WHATWEB_BINARY: ${WHATWEB_BINARY:-whatweb}
+      THEHARVESTER_BINARY: ${THEHARVESTER_BINARY:-theHarvester}
+      GOBUSTER_BINARY: ${GOBUSTER_BINARY:-gobuster}
+      POSTGRES_DSN: ${POSTGRES_DSN:-postgresql+psycopg://toolbox:toolbox@postgres:5432/toolbox}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SSLYZE_TIMEOUT: ${SSLYZE_TIMEOUT:-180}
+      WHATWEB_TIMEOUT: ${WHATWEB_TIMEOUT:-180}
+      THEHARVESTER_TIMEOUT: ${THEHARVESTER_TIMEOUT:-180}
+      THEHARVESTER_SOURCES: ${THEHARVESTER_SOURCES:-crtsh,rapiddns,urlscan}
+      THEHARVESTER_LIMIT: ${THEHARVESTER_LIMIT:-200}
+      GOBUSTER_TIMEOUT: ${GOBUSTER_TIMEOUT:-240}
+      GOBUSTER_WORDLIST: ${GOBUSTER_WORDLIST:-/usr/share/wordlists/dirb/common.txt}
+      GOBUSTER_THREADS: ${GOBUSTER_THREADS:-4}
+      GOBUSTER_EXTENSIONS: ${GOBUSTER_EXTENSIONS:-}
+      GOBUSTER_DELAY: ${GOBUSTER_DELAY:-150ms}
+      GOBUSTER_REQUEST_TIMEOUT: ${GOBUSTER_REQUEST_TIMEOUT:-5s}
+      HYDRA_BINARY: ${HYDRA_BINARY:-hydra}
+      HYDRA_TIMEOUT: ${HYDRA_TIMEOUT:-120}
+      HYDRA_THREADS: ${HYDRA_THREADS:-4}
+      HYDRA_USERNAME_LIST_SHORT: ${HYDRA_USERNAME_LIST_SHORT:-/usr/share/seclists/Usernames/top-usernames-shortlist.txt}
+      HYDRA_USERNAME_LIST_COMMON: ${HYDRA_USERNAME_LIST_COMMON:-/usr/share/seclists/Usernames/Names/names.txt}
+      HYDRA_PASSWORD_LIST_SMALL: ${HYDRA_PASSWORD_LIST_SMALL:-/usr/share/seclists/Passwords/Common-Credentials/500-worst-passwords.txt}
+      HYDRA_PASSWORD_LIST_COMMON: ${HYDRA_PASSWORD_LIST_COMMON:-/usr/share/seclists/Passwords/Common-Credentials/10k-most-common.txt}
+      HYDRA_PASSWORD_LIST_ROCKYOU: ${HYDRA_PASSWORD_LIST_ROCKYOU:-/usr/share/wordlists/rockyou.txt}
+      AUTH_AUDIT_TIMEOUT: ${AUTH_AUDIT_TIMEOUT:-45}
+      AUTH_AUDIT_DEFAULT_ENDPOINT: ${AUTH_AUDIT_DEFAULT_ENDPOINT:-/rest/user/login}
+      AUTH_AUDIT_DEFAULT_REQUEST_FORMAT: ${AUTH_AUDIT_DEFAULT_REQUEST_FORMAT:-json}
+      AUTH_AUDIT_DEFAULT_FAILURE_MARKER: ${AUTH_AUDIT_DEFAULT_FAILURE_MARKER:-Invalid email or password.}
+      AUTH_AUDIT_DEFAULT_ATTEMPTS: ${AUTH_AUDIT_DEFAULT_ATTEMPTS:-3}
+      WIRESHARK_BINARY: ${WIRESHARK_BINARY:-tshark}
+      WIRESHARK_TIMEOUT: ${WIRESHARK_TIMEOUT:-30}
+      WIRESHARK_DEFAULT_INTERFACE: ${WIRESHARK_DEFAULT_INTERFACE:-eth0}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+      FERNET_KEY: ${FERNET_KEY:-}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  redis:
+    image: redis:7-alpine
+    container_name: pentest-toolbox-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: pentest-toolbox-postgres
+    environment:
+      POSTGRES_DB: toolbox
+      POSTGRES_USER: toolbox
+      POSTGRES_PASSWORD: toolbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toolbox -d toolbox"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: pentest-toolbox-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  juice-shop:
+    image: bkimminich/juice-shop
+    container_name: pentest-toolbox-juice-shop
+    profiles: ["lab"]
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

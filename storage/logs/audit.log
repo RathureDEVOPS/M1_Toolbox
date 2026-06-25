@@ -1,0 +1,4 @@
+2026-06-15 08:01:39,299 | INFO | {"event": "nmap_scan_executed", "scan_id": "d6d9839e-fa8f-4845-af73-aec91f82c44e", "target": "8.8.8.8", "scripts": [], "exit_code": 0, "duration_seconds": 30.58}
+2026-06-15 08:18:24,240 | INFO | {"event": "nmap_scan_executed", "scan_id": "9498591c-e341-4ca6-983d-e7c031287424", "target": "8.8.8.8", "scripts": [], "exit_code": 0, "duration_seconds": 104.44}
+2026-06-15 08:49:07,390 | INFO | {"event": "nmap_scan_executed", "scan_id": "7d69ab7b-ab52-4377-8557-ea2344e41196", "module_id": "nmap", "target": "8.8.8.8", "scripts": [], "exit_code": 0, "duration_seconds": 105.59}
+2026-06-15 08:49:14,977 | INFO | {"event": "sslyze_scan_executed", "scan_id": "07d5ae39-3c33-4671-bc0c-359432ef6bb1", "module_id": "sslyze", "target": "8.8.8.8", "exit_code": 0, "duration_seconds": 7.41}
